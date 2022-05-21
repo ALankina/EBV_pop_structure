@@ -4,10 +4,12 @@ import os
 import re
 from Bio import SeqIO, Entrez, Seq, SeqRecord
 import pycountry_convert as pc
+import sys
 
 Entrez.email = "oscar.charles.18@ucl.ac.uk"
 # fasta file of minimum set
-fasta_file = 'data/ebv_150k+_subset.fa'
+fasta_file = sys.argv[1]
+print(fasta_file)
 regex= '^([^.]+)' # everything before fullstop
 #print("id\tcontinent\tcountry\tdate\tisolate\tstrain")
 start = 1
@@ -27,7 +29,11 @@ for record in SeqIO.parse(fasta_file, "fasta"):
     seq_record = SeqIO.read(handle, "gb")
     keys = seq_record.features[0].qualifiers
     country = keys.get('country')
+
     if country is None:
+        country = "NA"
+        continent = "NA"
+    elif(re.match(":", str(country)) is not None):
         country = "NA"
         continent = "NA"
     else:
