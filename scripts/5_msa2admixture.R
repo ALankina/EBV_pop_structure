@@ -1,51 +1,18 @@
-# this converts the main msa into plink format
+args = commandArgs(trailingOnly=TRUE)
+# arg1 is admixture
+# arg2 is threads
 
-
-# req:
-# admixture https://dalexander.github.io/admixture/download.html
-# snp-sites
-
-# inputs
-msa = "data/EBV_MSA_April2022.fasta"
-max_k = 10
-
-
-
-
-#------------------- 1 - MSA 2 PLINK
-vcffile = paste0("analysis/5_admix","/",basename(msa),".vcf")
-plinkfile = paste0("analysis/5_admix","/",tools::file_path_sans_ext(basename(msa)))
-#fasta -> vcf
-
-system(paste0("snp-sites -v ", msa, " -o ", vcffile))
-
-#vcf -> plink
-# removes local LD within 50bp as recommended in manual for admixture
-# EBV seems to have multi-allelic variants, so forcing biallelic only
-#system(paste0("plink2 --vcf ", vcffile," --make-bed --double-id --max-alleles 2 --rm-dup --allow-extra-chr --maf 0.01 --indep-pairwise 50 10 0.1 --out ",plinkfile))
-system(paste0("plink2 --vcf ", vcffile," --make-bed --double-id --max-alleles 2 --rm-dup --allow-extra-chr --maf 0.01 --out ",plinkfile))
-
-
-
-
-
-
-
-
-
-
-
-#------------------- 2 - PLINK 2 ADMIXTURE
+#------------------- PLINK 2 ADMIXTURE
 #runs admixture for random seed for each k of interest ad.dir times
+
 
 
 for(k in c(1:max_k)){
 
     # ----------- run admix and store cross validation error in table
-    command = paste0("admixture --cv=20 -s time -j 4  ",plinkfile,".bed ",k," | tee ", k,".error")
-    command
+    command = paste0("cd analysis/4-admix ; ", args[1], " ../5_msa.bed ", k, " --cv=20 -s time -j ", args[2] ," | tee ", k,".error")
     system(command,wait = T,ignore.stdout = T, ignore.stderr = T)
-    t = system(paste0("grep -h CV 92_admix/even_labs/",sample,"/",sample,".",K,".out"), intern = T)
+    t = system(paste0("grep -h CV analysis/",K,".out"), intern = T)
     t = stringr::str_split(t," ",simplify = T)[,4]
     t = readr::parse_number(t)
     even.df = rbind(even.df, data.frame(sample = sample, k = K, error = t)) # keep track of all runs

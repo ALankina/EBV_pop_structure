@@ -1,5 +1,7 @@
-# Script to scrape genbank for geographical & clinical metadata of CMV sequences
-# current form gets data from each sequence in a fasta alignment, could provide an id_list using Entrez db search etc.
+# OC 2022
+# from a list of accesssions, this downloads each record, renames the fasta header to
+# > continent_country_isolatesource_recordname
+# usage python3 02_accession_list_rename_download.py 
 import os
 import re
 from Bio import SeqIO, Entrez, Seq, SeqRecord
@@ -22,15 +24,19 @@ for accession in accessions:
 
     keys = seq_record.features[0].qualifiers
     country = keys.get('country')
-    if country is None:
-        country = "NA"
-        continent = "NA"
-    else:
-        country = ''.join(country)
-        # country -> continent
-        country_alpha2 = pc.country_name_to_country_alpha2(country)
-        country_continent_code = pc.country_alpha2_to_continent_code(country_alpha2)
-        continent = pc.convert_continent_code_to_continent_name(country_continent_code)
+    if re.search(':', str(country)):
+            country = "NA"
+            continent = "NA"
+    else: 
+        if country is None:
+            country = "NA"
+            continent = "NA"
+        else:
+            country = ''.join(country)
+            # country -> continent
+            country_alpha2 = pc.country_name_to_country_alpha2(country)
+            country_continent_code = pc.country_alpha2_to_continent_code(country_alpha2)
+            continent = pc.convert_continent_code_to_continent_name(country_continent_code)
 
 
 
@@ -62,7 +68,7 @@ for accession in accessions:
 
 
     # now rename the fasta headers
-    newname = continent+"_"+country+"_"+seq_record.name+"_"+seq_record.description
+    newname = continent+"_"+country+"_"+isolate+"_"+seq_record.name+"_"+seq_record.description
     newname = newname.replace(" ","-") # some aligners fall over with spaces
     print(">"+newname)
     print(seq_record.seq)

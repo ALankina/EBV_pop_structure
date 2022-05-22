@@ -1,0 +1,1 @@
+${iqtree} -s ${msa_out} -m HKY -bb 1000 -nt ${threads} -pre analysis/2-phylo/msa_out
