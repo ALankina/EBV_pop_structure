@@ -11,3 +11,4 @@ options(bitmapType='cairo')
 png("analysis/4-admix/all.err.png")
 plot(p)
 dev.off()
+

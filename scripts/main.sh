@@ -8,9 +8,6 @@
 
 
 ### run vars
-generate_msa_from_core=T
-core_msa=data/core_ebv_msa.fa
-new_to_align=data/ebv_raw.fa
 msa_out=data/ebv_msa
 threads=4
 
@@ -18,7 +15,6 @@ threads=4
 
 ### set the environment for the cscluster
 module load R # sets R and Rscript
-mafft=/share/apps/genomics/mafft-7.453/bin/mafft
 snpsites=/share/apps/genomics/snp-sites-2.4.1/bin/snp-sites
 admixture=/share/apps/genomics/admixture_linux-1.3.0/admixture
 python3=/share/apps/python-3.9.0-shared/bin/python3
@@ -32,12 +28,6 @@ source $pyenv
 
 
 
-#---------------------- 0 get sequence data and align it
-# download formatted EBV sequences from genbank, formayt, same to multi-fasta
-$python3 scripts/02_accession_list_rename_download.py  > $new_to_align
-
-# align sequences to core msa
-echo $mafft  --keeplength --thread $threads --add $new_to_align $core_msa > ${msa_out}.fa
 
 # dirs
 mkdir analysis
@@ -47,9 +37,13 @@ mkdir analysis/3-clustering
 mkdir analysis/4-admix
 
 
+#---------------------- 0 generate alignment
+# this process can be very memory and time intensive and should be checked manually in any case
+# please run scripts/00 beforehand
+
+
 #---------------------- 1 find regions of structure
-
-
+Rscript scripts/10_run_hmmcluster.R data/EBV_MSA_April2022.fa data/NC_007605.1.fa NC007605
 
 
 #---------------------- 2 phylogeny
@@ -67,15 +61,15 @@ source scripts/20_phylo.sh
 ${snpsites} -v ${msa_out}.fa -o analysis/4-admix/msa.vcf
 
 # vcf -> bed format
-${plink} --vcf analysis/4-admix/msa.vcf --make-bed --double-id --max-alleles 2 --rm-dup --allow-extra-chr --maf 0.01 --out analysis/4-admix/msa
+${plink} --vcf analysis/4-admix/msa.vcf --make-bed --double-id --max-alleles 2 --rm-dup --allow-extra-chr --maf 0.01 --indep-pairwise 50 10 0.1 --out analysis/4-admix/msa
 
 cd analysis/4-admix
 
-for k in $(seq 1 3); 
+for k in $(seq 1 10); 
 do 
     echo $k
     # run admixture
-    ${admixture} msa.bed ${k} --cv=20 \
+    ${admixture} msa.bed ${k} -j${threads} --cv=20 \
     -s time `#random seed` | tee ${k}.log
     #-j ${threads} `#threads` \
 
@@ -92,7 +86,14 @@ do
 
 done
 
-# generate plots
+cd ../..
+
+
+### generate plots
+# plot errors
+Rscript scripts/40_plot_err_boxplot.R
+
+# find the optimal K and plot the admix fractions
 
 
 #---------------------- 5 LD
